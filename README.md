@@ -14,4 +14,4 @@ Una vez que el juego empieza, no hay botón de pausa. Dado que está programado 
 
 Controles: W (Mover la nave hacia arriba) S (Mover la nave hacia abajo) D (Mover la nave hacia la derecha) A (Mover la nave hacia la izquierda) Espacio (Disparar una bala)
 
-
+![image](https://github.com/user-attachments/assets/06099c9a-fa64-4c52-ad18-074232c97c20)
