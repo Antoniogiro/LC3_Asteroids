@@ -1,4 +1,4 @@
-.ORIG x3000    
+.ORIG x3000
 
 LD R1, PANTALLA_INICIO 
 LD R2, #0
@@ -55,17 +55,10 @@ CARGAR_MOV_AST_Y
 	STR R6, R2, #0
 
 LD R6, POSICION_INICIAL
+ST R6, NAVE
 JSR DRAW_NAVE               ; Dibujar nave en posicion incial (hacia arriba)
 
 MAIN_LOOP
-    JSR ASTEROIDE_CONTROLLER
-    JSR READ_INPUT         ; Leer la entrada del teclado
-    JSR MOVE_NAVE
-    JSR DRAW_NAVE
-    AND R0, R0, #0
-	BR MAIN_LOOP           ; Repetir el bucle principal
-
-ASTEROIDE_CONTROLLER
     LD R1, CANT_ASTEROIDES
 	ADD R4, R4, #-4   ; vuelvo al inicio del ARRAY de ASTEROIDES
 	AND R6, R6, #0    ; inicializo R6 a cero para elegir el desplazamiento indicado para cada ASTEROIDE
@@ -98,7 +91,12 @@ ASTEROIDE_CONTROLLER
         ADD R6, R6, #1
         ADD R1, R1, #-1
         BRp ASTEROIDE_LOOP
-        RET
+	LD R6, NAVE
+    JSR READ_INPUT         ; Leer la entrada del teclado
+    JSR MOVE_NAVE
+	ST R6, NAVE
+	JSR DRAW_NAVE
+	BR MAIN_LOOP           ; Repetir el bucle principal
 
 MOVE_NAVE
     ST	R0, DSH_R0	       ;Respaldo de registros
@@ -136,6 +134,7 @@ MOVE_NAVE
     LD	R7, DSH_R7
     
     RET                    ; Si no es una tecla de movimiento, regresar
+NAVE .BLKW 1
 MOVIMIENTOS_X   .BLKW 4
 MOVIMIENTOS_Y   .BLKW 4
 ANCHO_PANTALLA .FILL #128 
@@ -172,6 +171,7 @@ MOVE_UP
     ST R7, RESPALDO_R7
 
     LD R5, VALUE2
+	ADD R5, R5, R5
     ADD R1, R6, R5
     ADD R6, R6, R5
     ST R6, DSH_R6
@@ -186,6 +186,7 @@ MOVE_DOWN
     ST R7, RESPALDO_R7
 
     LD R5, VALUE
+	ADD R5, R5, R5
     ADD R6, R6, R5
     ST R6, DSH_R6
     JSR BORRAR_NAVE
@@ -196,7 +197,7 @@ MOVE_DOWN
 MOVE_LEFT
    ST R7, RESPALDO_R7
 
-    ADD R6, R6, #-1
+    ADD R6, R6, #-2
     ST R6, DSH_R6
     JSR BORRAR_NAVE
 
@@ -206,7 +207,7 @@ MOVE_LEFT
 MOVE_RIGHT
     ST R7, RESPALDO_R7
 
-    ADD R6, R6, #1
+    ADD R6, R6, #2
     ST R6, DSH_R6
     JSR BORRAR_NAVE
 
@@ -226,6 +227,7 @@ READ_INPUT
 EXIT_INPUT
     RET                    ; Retornar
 RESPALDO_R0     .FILL 1
+
 DRAW_NAVE
     ST	R0, ASH_R0	;;Respaldo de registros
     ST	R1, ASH_R1
@@ -293,7 +295,7 @@ ASH_R3		.FILL 1
 ASH_R4		.FILL 1
 ASH_R6		.FILL 1
 ASH_R7		.FILL 1
-
+VALUE             .FILL #128
 BORRAR_NAVE
     ST	R0, BSH_R0	;;Respaldo de registros
     ST	R1, BSH_R1
@@ -492,7 +494,6 @@ BSH_R7		.FILL 1
 COLOR_BLANCO      .FILL x7FFF
 COLOR_AZUL        .FILL x001F
 COLOR_ROJO        .FILL x7C00
-VALUE             .FILL #128
 KBD_BUF .FILL xFE02           ; Buffer para almacenar la tecla presionada
 KBD_IS_READ .FILL xFE00
 
