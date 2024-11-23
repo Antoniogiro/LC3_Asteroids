@@ -64,8 +64,8 @@ MAIN_LOOP
 	AND R6, R6, #0    ; inicializo R6 a cero para elegir el desplazamiento indicado para cada ASTEROIDE
     LD R0, RESPALDO_R0
     ASTEROIDE_LOOP
-        ADD R4, R4, #1	; cambio de asteroide al que desplazo
-        LDR R0, R4, #0
+        ADD R4, R4, #1	        ; cambio de asteroide al que desplazo
+        LDR R0, R4, #0          ; guarda en R0 el asteroide correspondiente      
         ST R0, ASTEROIDE_UBI
         LD R0, ASTEROIDE_UBI
         LD R3, UNO
@@ -90,6 +90,7 @@ MAIN_LOOP
         STR R0, R4, #0
         ADD R6, R6, #1
         ADD R1, R1, #-1
+        JSR VERIFICA_COLISION
         BRp ASTEROIDE_LOOP
 	LD R6, NAVE
     JSR READ_INPUT         ; Leer la entrada del teclado
@@ -227,7 +228,26 @@ READ_INPUT
 EXIT_INPUT
     RET                    ; Retornar
 RESPALDO_R0     .FILL 1
-
+VERIFICA_COLISION
+    ST R1, VC_R1
+    ST R2, VC_R2
+    ST R5, VC_R5
+    ST R7, VC_R7
+    LD R2, NAVE             
+    LD R1, ASTEROIDE_UBI    
+    NOT R5, R2           
+    ADD R5, R5, #1          
+    ADD R5, R5, R1          
+    BRz GAMEOVER
+    LD R1, VC_R1
+    LD R2, VC_R2
+    LD R5, VC_R5
+    LD R7, VC_R7
+    RET
+VC_R1       .FILL 1
+VC_R2       .FILL 1
+VC_R5       .FILL 1
+VC_R7       .FILL 1
 DRAW_NAVE
     ST	R0, ASH_R0	;;Respaldo de registros
     ST	R1, ASH_R1
@@ -286,7 +306,8 @@ DRAW_NAVE
     LD	R6, ASH_R6
     LD	R7, ASH_R7
     RET
-
+KBD_IS_READ .FILL xFE00
+KBD_BUF .FILL xFE02           ; Buffer para almacenar la tecla presionada
 ;;Respaldo de registros		
 ASH_R0		.FILL 1
 ASH_R1		.FILL 1
@@ -296,6 +317,12 @@ ASH_R4		.FILL 1
 ASH_R6		.FILL 1
 ASH_R7		.FILL 1
 VALUE             .FILL #128
+GAMEOVER_STR	.STRINGZ "GAMEOVER"
+
+GAMEOVER		LEA		R0, GAMEOVER_STR
+				PUTS
+				HALT
+
 BORRAR_NAVE
     ST	R0, BSH_R0	;;Respaldo de registros
     ST	R1, BSH_R1
@@ -479,7 +506,6 @@ BORRAR_NAVE
     LD	R7, BSH_R7
 
     RET
-
 ;;Respaldo de registros		
 BSH_R0		.FILL 1
 BSH_R1		.FILL 1
@@ -494,8 +520,6 @@ BSH_R7		.FILL 1
 COLOR_BLANCO      .FILL x7FFF
 COLOR_AZUL        .FILL x001F
 COLOR_ROJO        .FILL x7C00
-KBD_BUF .FILL xFE02           ; Buffer para almacenar la tecla presionada
-KBD_IS_READ .FILL xFE00
 
 DIBUJAR_ASTEROIDE ; Pinta el asteroide desde la posicion guardada en R0
 	ST	R0, CSH_R0	;;Respaldo de registros
@@ -652,5 +676,5 @@ FSH_R2		.FILL 1
 ANCHO_PANTALLA_AUX .FILL #128 
 ROJO .FILL x7C00
 BLACK .FILL x0000
-DELAY .FILL #4000
+DELAY .FILL #6000
 .END
