@@ -87,10 +87,10 @@ MAIN_LOOP
             BRp X_LOOP
         JSR DIBUJAR_ASTEROIDE
         JSR WAIT
+        JSR VERIFICA_COLISION
         STR R0, R4, #0
         ADD R6, R6, #1
         ADD R1, R1, #-1
-        JSR VERIFICA_COLISION
         BRp ASTEROIDE_LOOP
 	LD R6, NAVE
     JSR READ_INPUT         ; Leer la entrada del teclado
@@ -135,6 +135,7 @@ MOVE_NAVE
     LD	R7, DSH_R7
     
     RET                    ; Si no es una tecla de movimiento, regresar
+AUX     .FILL #128
 NAVE .BLKW 1
 MOVIMIENTOS_X   .BLKW 4
 MOVIMIENTOS_Y   .BLKW 4
@@ -228,26 +229,71 @@ READ_INPUT
 EXIT_INPUT
     RET                    ; Retornar
 RESPALDO_R0     .FILL 1
+
 VERIFICA_COLISION
-    ST R1, VC_R1
-    ST R2, VC_R2
-    ST R5, VC_R5
-    ST R7, VC_R7
+    ST R0, VC_R0        ;contador de eje x
+    ST R1, VC_R1        ;posicion asteroide
+    ST R2, VC_R2        ;posicion nave
+    ST R3, VC_R3        ;extraer_fila
+    ST R4, VC_R4        ;basura
+    ST R5, VC_R5        ;almacena resultado
+    ST R7, VC_R7        ;por las dudas
+    LD R3, extraer_fila
+    LD R1, POSICION_ASTEROIDE
+    LD R0, contadorX
     LD R2, NAVE             
-    LD R1, ASTEROIDE_UBI    
-    NOT R5, R2           
-    ADD R5, R5, #1          
-    ADD R5, R5, R1          
-    BRz GAMEOVER
+    AND R1, R1, R3      ;R1 guarda posicion X del asteroide
+    AND R2, R2, R3      ;R2 guarda posicion X de la nave
+    NOT R5, R1           
+    ADD R5, R5, #1      ;en R5 tengo -(posX asteroide)   
+    JSR VERIFICA_EJES
+    LD R0, VC_R0
     LD R1, VC_R1
     LD R2, VC_R2
+    LD R3, VC_R3
+    LD R4, VC_R4
     LD R5, VC_R5
     LD R7, VC_R7
     RET
+VC_R0       .FILL 1
 VC_R1       .FILL 1
 VC_R2       .FILL 1
+VC_R3       .FILL 1
+VC_R4       .FILL 1
 VC_R5       .FILL 1
 VC_R7       .FILL 1
+extraer_fila .FILL x007F
+extraer_columna .FILL xFF80
+contadorX     .FILL #1
+contadorY     .FILL #10
+largo_asteroide          .FILL #-1536
+VERIFICA_EJES
+    ADD R4, R5, R2          
+    BRz VERIFICAR_EJEY
+    ADD R2, R2, #-11
+    ADD R0, R0, #-1
+    BRz VERIFICA_EJES
+    RET
+VERIFICAR_EJEY
+    LD R3, extraer_columna
+    LD R0, contadorY
+    LD R1, POSICION_ASTEROIDE
+    LD R2, NAVE
+    AND R1, R1, R3      ;R1 guarda posicion Y del asteroide
+    AND R2, R2, R3      ;R2 guarda posicion Y de la nave
+    NOT R5, R1           
+    ADD R5, R5, #1      ;en R5 tengo -(posY asteroide)
+    ADD R4, R5, R2      
+    BRp CHECK_GAMEOVER
+    RET
+CHECK_GAMEOVER
+    ;checkar si la resta entre R4 y el largo de la nade es positiva => seguir con el codigo. Si no => GAMEOVER. Quiero ver si lo "que me sobra" entre la posY nave y posY asteroide =< largo_asteroide 
+    LD R3, largo_asteroide
+    NOT R4, R4
+    ADD R4, R4, #1      ;guardo en R2 -(sobrante)
+    ADD R4, R4, R3
+    BRnz GAMEOVER
+    RET
 DRAW_NAVE
     ST	R0, ASH_R0	;;Respaldo de registros
     ST	R1, ASH_R1
@@ -316,7 +362,8 @@ ASH_R3		.FILL 1
 ASH_R4		.FILL 1
 ASH_R6		.FILL 1
 ASH_R7		.FILL 1
-VALUE             .FILL #128
+VALUE       .FILL #128
+POSICION_ASTEROIDE      .FILL 1
 GAMEOVER_STR	.STRINGZ "GAMEOVER"
 
 GAMEOVER		LEA		R0, GAMEOVER_STR
@@ -523,6 +570,7 @@ COLOR_ROJO        .FILL x7C00
 
 DIBUJAR_ASTEROIDE ; Pinta el asteroide desde la posicion guardada en R0
 	ST	R0, CSH_R0	;;Respaldo de registros
+    ST  R0, POSICION_ASTEROIDE
     ST	R1, CSH_R1
     ST	R2, CSH_R2
 
@@ -676,5 +724,5 @@ FSH_R2		.FILL 1
 ANCHO_PANTALLA_AUX .FILL #128 
 ROJO .FILL x7C00
 BLACK .FILL x0000
-DELAY .FILL #6000
+DELAY .FILL #5000
 .END
