@@ -266,13 +266,19 @@ extraer_fila .FILL x007F
 extraer_columna .FILL xFF80
 contadorX     .FILL #1
 contadorY     .FILL #10
-largo_asteroide          .FILL #-1536
+largo_asteroide          .FILL #1536
 VERIFICA_EJES
     ADD R4, R5, R2          
-    BRz VERIFICAR_EJEY
-    ADD R2, R2, #-11
-    ADD R0, R0, #-1
-    BRz VERIFICA_EJES
+    BRzp VERIFICAR_EJEX
+    RET
+VERIFICAR_EJEX
+    LD R1, POSICION_ASTEROIDE
+    ADD R1, R1, #11     ;guardo nueva_posicion del asteroide
+    AND R1, R1, R3      ;guardo nueva_posx del asteroide
+    NOT R5, R1          
+    ADD R5, R5, #1      ;en R5 tengo -(nueva_posX asteroide)
+    ADD R4, R5, R2
+    BRnz VERIFICAR_EJEY
     RET
 VERIFICAR_EJEY
     LD R3, extraer_columna
@@ -281,17 +287,19 @@ VERIFICAR_EJEY
     LD R2, NAVE
     AND R1, R1, R3      ;R1 guarda posicion Y del asteroide
     AND R2, R2, R3      ;R2 guarda posicion Y de la nave
-    NOT R5, R1           
+    NOT R5, R1          
     ADD R5, R5, #1      ;en R5 tengo -(posY asteroide)
     ADD R4, R5, R2      
-    BRp CHECK_GAMEOVER
+    BRzp CHECK_GAMEOVER
     RET
 CHECK_GAMEOVER
-    ;checkar si la resta entre R4 y el largo de la nade es positiva => seguir con el codigo. Si no => GAMEOVER. Quiero ver si lo "que me sobra" entre la posY nave y posY asteroide =< largo_asteroide 
-    LD R3, largo_asteroide
-    NOT R4, R4
-    ADD R4, R4, #1      ;guardo en R2 -(sobrante)
-    ADD R4, R4, R3
+    LD R1, POSICION_ASTEROIDE
+    LD R4, largo_asteroide
+    ADD R1, R1, R4          ;nueva posicionNueva asteroide
+    AND R1, R1, R3          ;R1 guarda posicionNueva Y del asteroide
+    NOT R5, R1          
+    ADD R5, R5, #1          ;en R5 tengo -(posY asteroide)
+    ADD R4, R5, R2    
     BRnz GAMEOVER
     RET
 DRAW_NAVE
