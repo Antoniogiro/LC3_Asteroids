@@ -97,6 +97,7 @@ MAIN_LOOP
     JSR MOVE_NAVE
 	ST R6, NAVE
 	JSR DRAW_NAVE
+    JSR CHECK_DISPARO
 	BR MAIN_LOOP           ; Repetir el bucle principal
 
 MOVE_NAVE
@@ -135,12 +136,107 @@ MOVE_NAVE
     LD	R7, DSH_R7
     
     RET                    ; Si no es una tecla de movimiento, regresar
+CHECK_DISPARO
+    ST R0, CD_R0
+    ST R1, CD_R1
+    ST R3, CD_R3
+    LD R3, space_key       ; Cargar el valor de la barra espaciadora
+    ADD R3, R3, R0
+    BRz DIBUJAR_DISPARO
+    LD R0, CD_R0
+    LD R1, CD_R1
+    LD R3, CD_R3
+    RET
+DIBUJAR_DISPARO
+    ST R6, DC_R6
+    ST R1, DC_R1
+    ST R2, DC_R2
+    ST R3, DC_R3
+    ;se dibujara en la posicion de R0
+    LD R1, BLANCO
+    LD R2, ANCHO_PANTALLA
+    LD R3, POSICION_DISPARO
+    ADD R6, R6, R3
+
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+
+    LD R6, DC_R6
+    LD R1, DC_R1
+    LD R2, DC_R2
+    LD R3, DC_R3
+	RET
+BORRAR_DISPARO
+    ST R6, DC_R6
+    ST R1, DC_R1
+    ST R2, DC_R2
+    ST R3, DC_R3
+    ;se dibujara en la posicion de R0
+    LD R1, COLOR_NEGRO
+    LD R2, ANCHO_PANTALLA
+    LD R3, POSICION_DISPARO
+    ADD R6, R6, R3
+
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    STR R1, R6, #0
+    STR R1, R6, #1
+    ADD R6, R6, R2      ;salto linea
+    LD R6, DC_R6
+    LD R1, DC_R1
+    LD R2, DC_R2
+    LD R3, DC_R3
+    RET
+
+BLANCO      .FILL x7FFF
+DC_R6   .FILL 1
+DC_R1   .FILL 1
+DC_R2   .FILL 1
+DC_R3   .FILL 1
+CD_R0   .FILL 1
+CD_R1   .FILL 1
+CD_R3   .FIll 1
 AUX     .FILL #128
 NAVE .BLKW 1
 MOVIMIENTOS_X   .BLKW 4
 MOVIMIENTOS_Y   .BLKW 4
 ANCHO_PANTALLA .FILL #128 
-ANCHO_PANTALLA_N .FILL #-128 
+ANCHO_PANTALLA_N .FILL #-128
+POSICION_DISPARO    .FILL #-1665
 ASTEROIDES		.BLKW 4
 ASTEROIDE_1 .FILL xC900
 ASTEROIDE_2 .FILL xE000 
@@ -158,7 +254,7 @@ up_key .FILL #-119            ; Tecla 'W' para subir
 down_key .FILL #-115          ; Tecla 'S' para bajar
 left_key .FILL #-97           ; Tecla 'A' para mover a la izquierda
 right_key .FILL #-100         ; Tecla 'D' para mover a la derecha
-
+space_key .FILL #-32           ; Tecla 'Barra Espaciadora' para disparar
 ;;Respaldo de registros		
 DSH_R0		.FILL 1
 DSH_R1		.FILL 1
@@ -255,6 +351,11 @@ VERIFICA_COLISION
     LD R5, VC_R5
     LD R7, VC_R7
     RET
+GAMEOVER_STR	.STRINGZ "GAMEOVER"
+
+GAMEOVER		LEA		R0, GAMEOVER_STR
+				PUTS
+				HALT
 VC_R0       .FILL 1
 VC_R1       .FILL 1
 VC_R2       .FILL 1
@@ -372,11 +473,6 @@ ASH_R6		.FILL 1
 ASH_R7		.FILL 1
 VALUE       .FILL #128
 POSICION_ASTEROIDE      .FILL 1
-GAMEOVER_STR	.STRINGZ "GAMEOVER"
-
-GAMEOVER		LEA		R0, GAMEOVER_STR
-				PUTS
-				HALT
 
 BORRAR_NAVE
     ST	R0, BSH_R0	;;Respaldo de registros
@@ -729,7 +825,7 @@ BORRAR_ASTEROIDE
 FSH_R0		.FILL 1
 FSH_R1		.FILL 1
 FSH_R2		.FILL 1
-ANCHO_PANTALLA_AUX .FILL #128 
+ANCHO_PANTALLA_AUX .FILL #128
 ROJO .FILL x7C00
 BLACK .FILL x0000
 DELAY .FILL #5000
