@@ -1,8 +1,5 @@
 .ORIG x3000
 
-LD R1, PANTALLA_INICIO 
-LD R2, #0
-
 CARGAR_ARRAY_AST   ; cargo en R4 las direcciones de todos los ASTEROIDES
 	LD R4, ASTEROIDES; ARRAY coordenadas posicion ASTEROIDES
 	LD R5, ASTEROIDE_1
@@ -57,6 +54,8 @@ CARGAR_MOV_AST_Y
 LD R6, POSICION_INICIAL
 ST R6, NAVE
 JSR DRAW_NAVE               ; Dibujar nave en posicion incial (hacia arriba)
+ADD R0, R0, #0
+ST R0, posicion_disparo
 
 MAIN_LOOP
     LD R1, CANT_ASTEROIDES
@@ -98,6 +97,7 @@ MAIN_LOOP
 	ST R6, NAVE
 	JSR DRAW_NAVE
     JSR CHECK_DISPARO
+    JSR MOVER_DISPARO
 	BR MAIN_LOOP           ; Repetir el bucle principal
 
 MOVE_NAVE
@@ -136,17 +136,93 @@ MOVE_NAVE
     LD	R7, DSH_R7
     
     RET                    ; Si no es una tecla de movimiento, regresar
+posicion_disparo    .FILL 1
+ASTEROIDES		.BLKW 4
+ASTEROIDE_1 .FILL xC900
+ASTEROIDE_2 .FILL xE000 
+ASTEROIDE_3 .FILL xC060
+ASTEROIDE_4 .FILL xEE70
+CERO            .FILL #0
+UNO		.FILL #1
+MENOS_UNO       .FILL #-1
+BOOL_DISPARO    .FILL 1
 CHECK_DISPARO
     ST R0, CD_R0
     ST R1, CD_R1
     ST R3, CD_R3
+    ST R7, CD_R7
+    ST R6, CD_R6
     LD R3, space_key       ; Cargar el valor de la barra espaciadora
     ADD R3, R3, R0
-    BRz DIBUJAR_DISPARO
+    BRz SHOOT
     LD R0, CD_R0
     LD R1, CD_R1
     LD R3, CD_R3
+    LD R6, CD_R6
+    LD R7, CD_R7
     RET
+SHOOT
+    ST R7, SH_R7
+    JSR CHECK_ACTIVA
+    LD R1, NAVE
+    ADD R6, R1, #0
+    LD R3, MOVIMIENTO_DISPARO
+    ADD R6, R6, R3
+    ST R6, posicion_disparo
+    JSR DIBUJAR_DISPARO
+    LD R7, SH_R7
+    RET
+MOVIMIENTOS_X   .BLKW 4
+MOVIMIENTOS_Y   .BLKW 4
+SH_R7   .FILL 1
+CHECK_ACTIVA
+    ST R6, CA_R6
+    ST R7, CA_R7
+    LD R6, posicion_disparo
+    BRn NO_SHOOT            ; esto significa que si hay un disparo activo, no se realizara ninguna otra cosa
+    LD R6, CA_R6
+    LD R7, CA_R7
+    RET
+CA_R6   .FILL 1
+CA_R7   .FILL 1
+MOVER_DISPARO
+    ST R1, MD_R1
+    ST R6, MD_R6
+    ST R7, MD_R7
+    LD R6, posicion_disparo
+    BRzp NO_SHOOT
+
+    ; Verificar si el disparo esta fuera de la pantalla
+    LD R2, ANCHO_PANTALLA
+    NOT R2, R2
+    ADD R2, R2, #1
+    ADD R2, R6, R2
+    BRp NO_SHOOT   ; Disparo fuera de pantalla
+
+    JSR BORRAR_DISPARO
+    LD R1, MOVIMIENTO_DISPARO
+    ADD R6, R6, R1
+    ST R6, posicion_disparo
+    JSR DIBUJAR_DISPARO
+    LD R1, MD_R1
+    LD R6, MD_R6
+    LD R7, MD_R7
+    RET
+NO_SHOOT
+    ST R7, NDA_R7
+    ADD R0, R0, #0
+    ST R0, posicion_disparo
+    LD R7, MD_R7
+    RET
+NDA_R7  .FILL 1
+MD_R0   .FILL 1
+MD_R1   .FILL 1
+MD_R2   .FILL 1
+MD_R3   .FILL 1
+MD_R4   .FILL 1
+MD_R5   .FILL 1
+MD_R6   .FILL 1
+MD_R7   .FILL 1
 DIBUJAR_DISPARO
     ST R6, DC_R6
     ST R1, DC_R1
@@ -155,8 +231,6 @@ DIBUJAR_DISPARO
     ;se dibujara en la posicion de R0
     LD R1, BLANCO
     LD R2, ANCHO_PANTALLA
-    LD R3, POSICION_DISPARO
-    ADD R6, R6, R3
 
     STR R1, R6, #0
     STR R1, R6, #1
@@ -192,8 +266,6 @@ BORRAR_DISPARO
     ;se dibujara en la posicion de R0
     LD R1, COLOR_NEGRO
     LD R2, ANCHO_PANTALLA
-    LD R3, POSICION_DISPARO
-    ADD R6, R6, R3
 
     STR R1, R6, #0
     STR R1, R6, #1
@@ -221,7 +293,17 @@ BORRAR_DISPARO
     LD R2, DC_R2
     LD R3, DC_R3
     RET
+READ_INPUT
+    ST R0, RESPALDO_R0
 
+    LDI R0, KBD_IS_READ
+    ADD R0, R0, #0
+    BRz EXIT_INPUT
+    LDI R0, KBD_BUF       ; Guardar la tecla en el buffer
+
+EXIT_INPUT
+    RET                    ; Retornar
+RESPALDO_R0     .FILL 1
 BLANCO      .FILL x7FFF
 DC_R6   .FILL 1
 DC_R1   .FILL 1
@@ -229,22 +311,14 @@ DC_R2   .FILL 1
 DC_R3   .FILL 1
 CD_R0   .FILL 1
 CD_R1   .FILL 1
-CD_R3   .FIll 1
+CD_R3   .FILL 1
+CD_R6   .FILL 1
+CD_R7   .FILL 1
 AUX     .FILL #128
 NAVE .BLKW 1
-MOVIMIENTOS_X   .BLKW 4
-MOVIMIENTOS_Y   .BLKW 4
 ANCHO_PANTALLA .FILL #128 
 ANCHO_PANTALLA_N .FILL #-128
-POSICION_DISPARO    .FILL #-1665
-ASTEROIDES		.BLKW 4
-ASTEROIDE_1 .FILL xC900
-ASTEROIDE_2 .FILL xE000 
-ASTEROIDE_3 .FILL xC060
-ASTEROIDE_4 .FILL xEE70
-CERO            .FILL #0
-UNO		.FILL #1
-MENOS_UNO       .FILL #-1
+MOVIMIENTO_DISPARO    .FILL #-1664
 CANT_ASTEROIDES .FILL #4
 COLOR_NEGRO       .FILL x0000
 POSICION_INICIAL  .FILL xDF40
@@ -264,7 +338,6 @@ DSH_R4		.FILL 1
 DSH_R5		.FILL 1
 DSH_R6		.FILL 1
 DSH_R7		.FILL 1
-
 MOVE_UP
     ST R7, RESPALDO_R7
 
@@ -277,9 +350,7 @@ MOVE_UP
 
     LD R7, RESPALDO_R7
     RET
-
 VALUE2            .FILL #-128
-
 MOVE_DOWN
     ST R7, RESPALDO_R7
 
@@ -291,7 +362,6 @@ MOVE_DOWN
 
     LD R7, RESPALDO_R7
     RET
-
 MOVE_LEFT
    ST R7, RESPALDO_R7
 
@@ -301,7 +371,6 @@ MOVE_LEFT
 
     LD R7, RESPALDO_R7
     RET
-
 MOVE_RIGHT
     ST R7, RESPALDO_R7
 
@@ -311,20 +380,7 @@ MOVE_RIGHT
 
     LD R7, RESPALDO_R7
     RET
-
 RESPALDO_R7       .FILL 1
-
-READ_INPUT
-    ST R0, RESPALDO_R0
-
-    LDI R0, KBD_IS_READ
-    ADD R0, R0, #0
-    BRz EXIT_INPUT
-    LDI R0, KBD_BUF       ; Guardar la tecla en el buffer
-
-EXIT_INPUT
-    RET                    ; Retornar
-RESPALDO_R0     .FILL 1
 
 VERIFICA_COLISION
     ST R0, VC_R0        ;contador de eje x
