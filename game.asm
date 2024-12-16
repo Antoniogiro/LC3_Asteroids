@@ -53,10 +53,8 @@ CARGAR_MOV_AST_Y
 
 LD R6, POSICION_INICIAL
 ST R6, NAVE
-JSR DRAW_NAVE               ; Dibujar nave en posicion incial (hacia arriba)
-ADD R0, R0, #0
-ST R0, posicion_disparo
-
+JSR DRAW_NAVE         ; Dibujar nave en posicion incial (hacia arriba)
+ST R6, posicion_disparo
 MAIN_LOOP
     LD R1, CANT_ASTEROIDES
 	ADD R4, R4, #-4   ; vuelvo al inicio del ARRAY de ASTEROIDES
@@ -64,7 +62,8 @@ MAIN_LOOP
     LD R0, RESPALDO_R0
     ASTEROIDE_LOOP
         ADD R4, R4, #1	        ; cambio de asteroide al que desplazo
-        LDR R0, R4, #0          ; guarda en R0 el asteroide correspondiente      
+        LDR R0, R4, #0          ; guarda en R0 el asteroide correspondiente
+        BRz ASTEROIDE_LOOP      ; Si esta vacio, continuar al siguiente      
         ST R0, ASTEROIDE_UBI
         LD R0, ASTEROIDE_UBI
         LD R3, UNO
@@ -86,6 +85,7 @@ MAIN_LOOP
             BRp X_LOOP
         JSR DIBUJAR_ASTEROIDE
         JSR WAIT
+        JSR CHECK_DISPARO
         JSR VERIFICA_COLISION
         STR R0, R4, #0
         ADD R6, R6, #1
@@ -96,7 +96,7 @@ MAIN_LOOP
     JSR MOVE_NAVE
 	ST R6, NAVE
 	JSR DRAW_NAVE
-    JSR CHECK_DISPARO
+    JSR INICIA_DISPARO
     JSR MOVER_DISPARO
 	BR MAIN_LOOP           ; Repetir el bucle principal
 
@@ -134,10 +134,8 @@ MOVE_NAVE
     LD	R5, DSH_R5
     LD	R6, DSH_R6
     LD	R7, DSH_R7
-    
     RET                    ; Si no es una tecla de movimiento, regresar
-posicion_disparo    .FILL 1
-ASTEROIDES		.BLKW 4
+POSICION_INICIAL  .FILL xDF40
 ASTEROIDE_1 .FILL xC900
 ASTEROIDE_2 .FILL xE000 
 ASTEROIDE_3 .FILL xC060
@@ -146,7 +144,7 @@ CERO            .FILL #0
 UNO		.FILL #1
 MENOS_UNO       .FILL #-1
 BOOL_DISPARO    .FILL 1
-CHECK_DISPARO
+INICIA_DISPARO
     ST R0, CD_R0
     ST R1, CD_R1
     ST R3, CD_R3
@@ -185,12 +183,20 @@ CHECK_ACTIVA
     RET
 CA_R6   .FILL 1
 CA_R7   .FILL 1
+ASTEROIDE_UBI	.BLKW 1
 MOVER_DISPARO
     ST R1, MD_R1
+    ST R3, MD_R3
     ST R6, MD_R6
     ST R7, MD_R7
     LD R6, posicion_disparo
     BRzp NO_SHOOT
+
+    LD R3, NAVE
+    NOT R3, R3
+    ADD R3, R3, #1
+    ADD R3, R6, R3
+    BRz NO_SHOOT
 
     ; Verificar si el disparo esta fuera de la pantalla
     LD R2, ANCHO_PANTALLA
@@ -205,15 +211,20 @@ MOVER_DISPARO
     ST R6, posicion_disparo
     JSR DIBUJAR_DISPARO
     LD R1, MD_R1
+    LD R3, MD_R3
     LD R6, MD_R6
     LD R7, MD_R7
     RET
+ASTEROIDES		.BLKW 4
 NO_SHOOT
     ST R7, NDA_R7
     ADD R0, R0, #0
     ST R0, posicion_disparo
     LD R7, MD_R7
     RET
+ANCHO_PANTALLA .FILL #128 
+ANCHO_PANTALLA_N .FILL #-128
+CANT_ASTEROIDES .FILL #4
 NDA_R7  .FILL 1
 MD_R0   .FILL 1
 MD_R1   .FILL 1
@@ -228,7 +239,7 @@ DIBUJAR_DISPARO
     ST R1, DC_R1
     ST R2, DC_R2
     ST R3, DC_R3
-    ;se dibujara en la posicion de R0
+    ;se dibujara en la posicion de R6
     LD R1, BLANCO
     LD R2, ANCHO_PANTALLA
 
@@ -293,6 +304,8 @@ BORRAR_DISPARO
     LD R2, DC_R2
     LD R3, DC_R3
     RET
+posicion_disparo    .BLKW 1
+NAVE .BLKW 1
 READ_INPUT
     ST R0, RESPALDO_R0
 
@@ -315,20 +328,16 @@ CD_R3   .FILL 1
 CD_R6   .FILL 1
 CD_R7   .FILL 1
 AUX     .FILL #128
-NAVE .BLKW 1
-ANCHO_PANTALLA .FILL #128 
-ANCHO_PANTALLA_N .FILL #-128
-MOVIMIENTO_DISPARO    .FILL #-1664
-CANT_ASTEROIDES .FILL #4
+
+MOVIMIENTO_DISPARO    .FILL #-1280
 COLOR_NEGRO       .FILL x0000
-POSICION_INICIAL  .FILL xDF40
 PANTALLA_INICIO   .FILL xC000
-ASTEROIDE_UBI	.BLKW 1
 up_key .FILL #-119            ; Tecla 'W' para subir
 down_key .FILL #-115          ; Tecla 'S' para bajar
 left_key .FILL #-97           ; Tecla 'A' para mover a la izquierda
 right_key .FILL #-100         ; Tecla 'D' para mover a la derecha
 space_key .FILL #-32           ; Tecla 'Barra Espaciadora' para disparar
+extraer_columna .FILL xFF80
 ;;Respaldo de registros		
 DSH_R0		.FILL 1
 DSH_R1		.FILL 1
@@ -381,7 +390,67 @@ MOVE_RIGHT
     LD R7, RESPALDO_R7
     RET
 RESPALDO_R7       .FILL 1
-
+GAMEOVER		LEA		R0, GAMEOVER_STR
+				PUTS
+				HALT
+CHECK_DISPARO
+    ST R0, CDI_R0        ;contador de eje x
+    ST R1, CDI_R1        ;posicion asteroide
+    ST R2, CDI_R2        ;posicion nave
+    ST R3, CDI_R3        ;extraer_fila
+    ST R4, CDI_R4        ;basura
+    ST R5, CDI_R5        ;almacena resultado
+    ST R7, CDI_R7        ;por las dudas
+    LD R3, extraer_fila
+    LD R1, POSICION_ASTEROIDE
+    LD R0, contadorX
+    LD R2, posicion_disparo             
+    AND R1, R1, R3      ;R1 guarda posicion X del asteroide
+    AND R2, R2, R3      ;R2 guarda posicion X de la posicion_disparo
+    NOT R5, R1           
+    ADD R5, R5, #1      ;en R5 tengo -(posX asteroide)   
+    JSR VERIFICA_EJE
+    LD R0, CDI_R0
+    LD R1, CDI_R1
+    LD R2, CDI_R2
+    LD R3, CDI_R3
+    LD R4, CDI_R4
+    LD R5, CDI_R5
+    LD R7, CDI_R7
+    RET
+VERIFICA_EJE
+    ADD R4, R5, R2          
+    BRzp VERIFICAR_EJEX_DER
+    RET
+VERIFICAR_EJEX_DER
+    LD R1, POSICION_ASTEROIDE
+    ADD R1, R1, #11     ;guardo nueva_posicion del asteroide
+    AND R1, R1, R3      ;guardo nueva_posx del asteroide
+    NOT R5, R1          
+    ADD R5, R5, #1      ;en R5 tengo -(nueva_posX asteroide)
+    ADD R4, R5, R2
+    BRnz VERIFICAR_EJEY_ABAJO
+    RET
+VERIFICAR_EJEY_ABAJO
+    LD R3, extraer_columna
+    LD R0, contadorY
+    LD R1, POSICION_ASTEROIDE
+    LD R2, posicion_disparo
+    AND R1, R1, R3      ;R1 guarda posicion Y del asteroide
+    AND R2, R2, R3      ;R2 guarda posicion Y de la posicion_disparo
+    NOT R5, R1          
+    ADD R5, R5, #1      ;en R5 tengo -(posY asteroide)
+    ADD R4, R5, R2      
+    BRzp CHECK_GAMEOVER
+    RET
+CDI_R0      .FILL 1
+CDI_R1      .FILL 1
+CDI_R2      .FILL 1
+CDI_R3      .FILL 1
+CDI_R4      .FILL 1
+CDI_R5      .FILL 1
+CDI_R6      .FILL 1
+CDI_R7      .FILL 1
 VERIFICA_COLISION
     ST R0, VC_R0        ;contador de eje x
     ST R1, VC_R1        ;posicion asteroide
@@ -408,10 +477,6 @@ VERIFICA_COLISION
     LD R7, VC_R7
     RET
 GAMEOVER_STR	.STRINGZ "GAMEOVER"
-
-GAMEOVER		LEA		R0, GAMEOVER_STR
-				PUTS
-				HALT
 VC_R0       .FILL 1
 VC_R1       .FILL 1
 VC_R2       .FILL 1
@@ -420,7 +485,6 @@ VC_R4       .FILL 1
 VC_R5       .FILL 1
 VC_R7       .FILL 1
 extraer_fila .FILL x007F
-extraer_columna .FILL xFF80
 contadorX     .FILL #1
 contadorY     .FILL #10
 largo_asteroide          .FILL #1536
@@ -529,7 +593,7 @@ ASH_R6		.FILL 1
 ASH_R7		.FILL 1
 VALUE       .FILL #128
 POSICION_ASTEROIDE      .FILL 1
-
+NEGRO       .FILL x0000
 BORRAR_NAVE
     ST	R0, BSH_R0	;;Respaldo de registros
     ST	R1, BSH_R1
@@ -541,7 +605,7 @@ BORRAR_NAVE
     ST	R7, BSH_R7
 
     ADD R1, R6, #0          ; Esto es para no modificar la posicion real de la nave al dibujarla
-    LD R2, COLOR_NEGRO      ; (La posicion de la nave siempre está en R1)
+    LD R2, NEGRO      ; (La posicion de la nave siempre está en R1)
     LD R5, VALUE2
 
     ADD R1, R1, R5
@@ -884,5 +948,5 @@ FSH_R2		.FILL 1
 ANCHO_PANTALLA_AUX .FILL #128
 ROJO .FILL x7C00
 BLACK .FILL x0000
-DELAY .FILL #5000
+DELAY .FILL #5500
 .END
