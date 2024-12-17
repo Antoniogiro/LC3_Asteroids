@@ -85,8 +85,8 @@ MAIN_LOOP
             BRp X_LOOP
         JSR DIBUJAR_ASTEROIDE
         JSR WAIT
-        JSR CHECK_DISPARO
         JSR VERIFICA_COLISION
+        JSR CHECK_DISPARO
         STR R0, R4, #0
         ADD R6, R6, #1
         ADD R1, R1, #-1
@@ -274,7 +274,7 @@ BORRAR_DISPARO
     ST R1, DC_R1
     ST R2, DC_R2
     ST R3, DC_R3
-    ;se dibujara en la posicion de R0
+    ;se dibujara en la posicion de R6
     LD R1, COLOR_NEGRO
     LD R2, ANCHO_PANTALLA
 
@@ -328,7 +328,8 @@ CD_R3   .FILL 1
 CD_R6   .FILL 1
 CD_R7   .FILL 1
 AUX     .FILL #128
-
+KBD_IS_READ .FILL xFE00
+KBD_BUF .FILL xFE02           ; Buffer para almacenar la tecla presionada
 MOVIMIENTO_DISPARO    .FILL #-1280
 COLOR_NEGRO       .FILL x0000
 PANTALLA_INICIO   .FILL xC000
@@ -359,7 +360,6 @@ MOVE_UP
 
     LD R7, RESPALDO_R7
     RET
-VALUE2            .FILL #-128
 MOVE_DOWN
     ST R7, RESPALDO_R7
 
@@ -441,7 +441,7 @@ VERIFICAR_EJEY_ABAJO
     NOT R5, R1          
     ADD R5, R5, #1      ;en R5 tengo -(posY asteroide)
     ADD R4, R5, R2      
-    BRzp CHECK_GAMEOVER
+    BRzp CHECK_COLISION
     RET
 CDI_R0      .FILL 1
 CDI_R1      .FILL 1
@@ -451,6 +451,66 @@ CDI_R4      .FILL 1
 CDI_R5      .FILL 1
 CDI_R6      .FILL 1
 CDI_R7      .FILL 1
+CHECK_COLISION
+    LD R1, POSICION_ASTEROIDE
+    LD R4, largo_asteroide
+    ADD R1, R1, R4          ;nueva posicionNueva asteroide
+    AND R1, R1, R3          ;R1 guarda posicionNueva Y del asteroide
+    NOT R5, R1          
+    ADD R5, R5, #1          ;en R5 tengo -(posY asteroide)
+    ADD R4, R5, R2    
+    BRnz TERMINAR
+    RET
+TERMINAR
+    ST R0, TE_R0
+    ST R1, TE_R1
+    ST R2, TE_R2
+    ST R3, TE_R3
+    ST R6, TE_R6
+    ST R7, TE_R7
+    ; Eliminar la posicion del asteroide impactado en el array
+    LEA R4, ASTEROIDES      ; R4 apunta al inicio del array
+    LD R3, CANT_ASTEROIDES  ; R3 contiene la cantidad de asteroides restantes
+    BRzp FIND_ASTEROIDE
+    RET
+FIND_ASTEROIDE
+    LDR R1, R4, #0          ; R1 carga la posicion del asteroide actual
+    LD R2, POSICION_ASTEROIDE
+    ADD R1, R1, R2          ; Comparar posicion del asteroide impactado con posicion de los asteroides
+    BRz FOUND               ; Si coincide, es el asteroide impactado
+    ADD R4, R4, #1          ; Avanzar al siguiente asteroide
+    ADD R3, R3, #-1         ; Decrementar la cantidad de asteroides por revisar
+    BRp FIND_ASTEROIDE      ; Repetir mientras haya asteroides por verificar
+    LD R1, TE_R1
+    LD R2, TE_R2
+    LD R3, TE_R3
+    LD R7, TE_R7
+    RET
+FOUND
+    AND R0, R0, #0          ; R0 = 0
+    STR R0, R4, #0          ; Borrar posicion del asteroide impactado del array
+    LD R0, POSICION_ASTEROIDE
+    LD R6, posicion_disparo
+    ; Llamadas para limpiar pantalla y desactivar disparo
+    JSR BORRAR_ASTEROIDE
+    JSR BORRAR_DISPARO
+    AND R0, R0, #0          ; Desactivar disparo
+    LD R0, posicion_disparo
+    LD R0, TE_R0
+    LD R1, TE_R1
+    LD R2, TE_R2
+    LD R3, TE_R3
+    LD R6, TE_R6
+    LD R7, TE_R7
+    RET
+VALUE       .FILL #128
+VALUE2            .FILL #-128
+TE_R0       .FILL 1
+TE_R1       .FILL 1
+TE_R2       .FILL 1
+TE_R3       .FILL 1
+TE_R6       .FILL 1
+TE_R7       .FILL 1
 VERIFICA_COLISION
     ST R0, VC_R0        ;contador de eje x
     ST R1, VC_R1        ;posicion asteroide
@@ -581,8 +641,6 @@ DRAW_NAVE
     LD	R6, ASH_R6
     LD	R7, ASH_R7
     RET
-KBD_IS_READ .FILL xFE00
-KBD_BUF .FILL xFE02           ; Buffer para almacenar la tecla presionada
 ;;Respaldo de registros		
 ASH_R0		.FILL 1
 ASH_R1		.FILL 1
@@ -591,7 +649,6 @@ ASH_R3		.FILL 1
 ASH_R4		.FILL 1
 ASH_R6		.FILL 1
 ASH_R7		.FILL 1
-VALUE       .FILL #128
 POSICION_ASTEROIDE      .FILL 1
 NEGRO       .FILL x0000
 BORRAR_NAVE
